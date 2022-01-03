@@ -1,0 +1,154 @@
+breed [ humans human ]                               ; creating a population of humans who are rational agents
+breed [ zombies zombie ]                             ; creating a population of zombies who are reflex agents
+
+globals [rad chance prey predator random_number turned zombies_down zombies_engaged ]     ; a global variable which is radius (used as the radius for interactions)
+
+;;this is the setup function (button)
+to setup
+  clear-all                                          ; clear the world of any previous activities
+  reset-ticks                                        ; resets the ticks counter
+  set rad 5                                          ; let's set our global variable to 5
+  ;;set zombies_speed zombies_speed / 2              ; if we want to slow the zombies down (FOR ANALYSIS)
+
+  ;;creating number of people
+  create-humans number_of_humans [
+    setxy random-xcor random-ycor                    ; starting random position of people over our world
+    set color 67                                     ; green tone to humans
+    set size 10                                      ; size for our humans
+    set shape "person"                               ; human shape
+  ]
+
+  ;;creating number of zombies
+  create-zombies number_of_zombies [
+    setxy random-xcor random-ycor                    ; starting random position of our zombies
+    set color 15                                     ; setting the colour to red
+    set size 10                                      ; size for our zombies
+    set shape "person"                               ; our zombies will also look like a person
+  ]
+end
+
+
+;;to go function (button)
+to go
+  reset_patch_color                                  ; resets patch colours because if we don't do this it leaves a mark all over the place from all agents
+  initiate_zombies                                   ; calls the function
+  initiate_humans                                    ; calls the function
+  tick                                               ; at the end of our go function, one tick will elapse
+  set random_number random 100
+  set chance (random_number + humans_courage + 1) / 2
+  if not any? zombies [ user-message "Humans Victorious!" stop ]
+  if not any? humans [ user-message "Zombies have taken over the Earth!" stop ]
+end
+
+;;----------------------------------------------------------------------------------------------------------------------------------------
+;;patches back to black
+to reset_patch_color
+  ask patches [                                      ; this asks all of the patches in the population to do what is in the brackets
+    set pcolor black                                 ; this sets the color of each patch to black
+  ]
+end
+
+;;zombie commands
+to initiate_zombies
+  ask zombies [
+    set color 15                                     ; set a red colour for zombies, this is mandatory because the colour changes when we use the cone detection
+    let zwr 10                                       ; set a local variable that is responsible for the turning angle for zombies
+
+    ;;main trigger for detecting humans
+    let brains [false]
+
+    ;;fov of zombies
+    let vis_rad 18
+    let vis_ang 180
+
+    ask humans in-cone vis_rad vis_ang [             ; this is the setup radius around the zombie for detecting humans
+        set brains true                              ; we have detected a human, brains is activated meaning there is a brain nearby
+    ]
+
+    if show_zombie_vis_cone = true [                 ; if the switch requested from the viewer is ON the cone FOV cone of the zombie will be visible
+      ask patches in-cone vis_rad vis_ang [          ; radius around the zombie setting up
+        set pcolor 95                                ; patch colour is blue
+      ]
+    ]
+    
+    set random_number random 100                     ;a random number generated for everytime
+
+    ifelse brains = true [                           ;if we have seen a human following events will be executed
+      ask zombies [
+        let foods humans in-radius 18                ; observe the candidate human around our 18 radius of our cone
+        if any? foods [                              ; if there are any candidates, let's target the closest one
+          set prey min-one-of humans [distance myself]
+          face prey                                  ; turn our face towards the target
+          forward zombies_speed                      ; advance with our zombie speed
+        ]
+      ]
+
+      ask humans [
+        let eaters zombies in-radius 18              ; observe the candidate human around our 18 radius of our cone
+        if any? eaters [                             ; if there are any candidates, let's target the closest one
+          set predator min-one-of zombies [distance myself]
+        ]
+      ]
+    ][
+      right ( random zwr - ( zwr / 2))               ; otherwise, if we did not detect any humans keep looking around for them, at changing (random) angles given from our local variable
+      fd zombies_speed                               ; with our zombie speed
+    ]
+
+
+     ask humans in-radius rad [                      ;detect if a zombie engaged with a human(was able to catch up)
+        set zombies_engaged zombies_engaged + 1      ;add one more engagement to the count
+        ifelse chance >= 50 [                        ;if the chance calculated from courage is above 50 percent
+        
+            ask min-one-of zombies [distance myself] [die]    ;kill the zombie
+        
+            set zombies_down zombies_down + 1        ;increase zombies down count by 1
+
+        ][                                           ;if the chance calculated from courage is below 50 percent
+            ask prey [set breed zombies]             ;turn the human into a zombie
+            set turned turned + 1
+        ]
+     ]
+  ]
+end
+
+;;human commands
+to initiate_humans
+  ask humans [
+    set color 67                                      ; mandatory to have it fixed again here because of the detection color change that occurs
+    let hwr 10                                        ; set a local variable that is responsible for the turning angle for zombies
+    ;forward humans_speed
+
+    ;;danger is for spotting zombies
+    let danger [false]
+
+    ;fov for humans
+    let vis_rad 24
+    let vis_ang 180
+
+    ask zombies in-cone vis_rad vis_ang [             ; this is the setup radius around the humans for detecting zombies
+        set color 113                                 ; setting any color of zombies to purple which we encounter
+        set danger true                               ; we encountered a zombie
+    ]
+
+    if show_human_vis_cone = true [                   ; if the switch requested from the viewer is ON the cone FOV cone of the human will be visible
+      ask patches in-cone vis_rad vis_ang [
+        set pcolor 9.9                                ; our cone colour for humans will be white (fov of humans)
+      ]
+    ]
+    
+    set random_number random 100                      ;a random number generated for everytime
+ 
+    ;;if/else statement
+    ifelse danger = true [
+      if chance >= 90 [                               ;if the chance calculated from courage is 90 or above, stop to engage with the zombie
+        stop
+      ]
+      right 180                                       ;turn 180 degrees and
+      fd humans_speed * 2                             ;run at human speed times 2 (running speed)
+      right 180                                       ;let's look back if the zombie is still there
+    ][
+      right ( random hwr - ( hwr / 1))                ;otherwise, if the we did not detect a zombie, let's be cautious and keep looking around to for zombies
+      forward humans_speed                            ;looking for zombies at half of human speed, no need to run when there are no zombies
+    ]
+  ]
+end
