@@ -26,6 +26,16 @@ If you would like to know more about the project, please check out my
 
 You will need NetLogo to run this program. The most recent version of NetLogo can be downloaded [here](https://ccl.northwestern.edu/netlogo/download.shtml).
 
+After you have NetLogo installed, fork the project files. Follow:
+
+1. Launch NetLogo.
+2. Click on `File`, then `Open`.
+3. Select `Apocalypse_Project.nlgo`.
+4. Click on `Setup`.
+5. Read the modifiers and experiment.
+6. Change the speed of the simulation using the slider above.
+7. Press `Go` and run the simulation.
+
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 
